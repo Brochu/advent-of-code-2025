@@ -1,6 +1,5 @@
 #include <stdio.h>
 #include <string>
-#include <print>
 
 char in[] = {
     #include "../inputs/in00.new.inc"
@@ -12,7 +11,7 @@ int solve(char p1[256], char p2[256]) {
 
     printf("Content:\n'%s'\n", input.c_str());
     std::string_view view = { in + 4, 5 };
-    std::println("View: {}", view);
+    printf("View: '%.*s'\n", (int)view.length(), view.data());
 
     strcpy_s(p1, 256, "Hello");
     strcpy_s(p2, 256, "World");
