@@ -15,5 +15,7 @@ int solve(char p1[256], char p2[256]) {
 
     strcpy_s(p1, 256, "Hello");
     strcpy_s(p2, 256, "World");
+    //TODO: Test compiling shader here and running compute pipeline
+    //TODO: Use SDL renderer here to render visual progress?
     return 69;
 }
