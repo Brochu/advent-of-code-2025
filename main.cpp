@@ -1,10 +1,17 @@
 #include <cstdio>
 #include <print>
+#include <string_view>
+
+#define ANS_SIZE 256
+
+//TODO: Look into integrating SDL3 lib in order to use GPU to solve problems
+//Could also render some solutions visually?
 
 // Day solve function prototype
-int solve(char *p1, char *p2);
+int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]);
 
 int main(int argc, char **argv) {
+    std::string_view sv = {};
     if (argc >= 4 && strcmp(argv[1], "xvert") == 0) {
         std::print("[AoC2025] Convert tool\n");
         std::print("\t - from '{}'\n", argv[2]);
@@ -23,18 +30,13 @@ int main(int argc, char **argv) {
 
         std::print("[AoC2025] Content = \n'{}'\n", content);
 
-        static const int cols = 18;
-        int lines = (fsize/cols) + 1;
-        std::println("[AoC2025] lines = {}", lines);
-
         FILE *out = fopen(argv[3], "wb");
-        for (int i = 0; i < lines; i++) {
-            for (int j = 0; j < cols; j++) {
-                size_t idx = (i*cols) + j;
-                char c = (idx >= fsize) ? '\0' : content[idx];
-                fprintf(out, "0x%02x ,", c);
+        for (size_t i = 0; i <= fsize; i++) {
+            fprintf(out, "0x%02x ,", content[i]);
+
+            if (((i+1) % 18) == 0) {
+                fprintf(out, "\n");
             }
-            fprintf(out, "\n");
         }
         fclose(out);
 
@@ -43,8 +45,11 @@ int main(int argc, char **argv) {
     }
     std::print("[AoC2025] Starting...\n");
 
-    char part1[256];
-    char part2[256];
+    char part1[ANS_SIZE];
+    memset(part1, 0, ANS_SIZE);
+
+    char part2[ANS_SIZE];
+    memset(part2, 0, ANS_SIZE);
     int res = solve(part1, part2);
 
     std::println("[AoC2025] Solved {} with {}...", DAY, res);

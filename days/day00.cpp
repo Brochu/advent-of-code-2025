@@ -3,11 +3,11 @@
 #include <print>
 
 char in[] = {
-    #include "../ins/in00.inc"
+    #include "../inputs/in00.new.inc"
 };
 std::string input(in);
 
-int solve(char *p1, char *p2) {
+int solve(char p1[256], char p2[256]) {
     printf("[Day00] input: ins/in00.txt\n");
 
     printf("Content:\n'%s'\n", input.c_str());
