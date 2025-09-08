@@ -1,4 +1,5 @@
-#include <string>
+#include <string_view>
+#include <vector>
 
 #include <windows.h>
 #include <wrl.h>
@@ -12,16 +13,26 @@ using Microsoft::WRL::ComPtr;
 char in[] = {
     #include "../inputs/in00.3.inc"
 };
-std::string input(in);
+std::string_view input(in);
 
 extern ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profile);
 
-int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
-    SDL_Log("[Day00] input: ins/in00.txt\n");
+//TODO: Find a way to include this from a header file
+extern std::string_view sv_strstr(std::string_view haystack, std::string_view needle);
+extern std::vector<std::string_view> sv_split(std::string_view str, std::string_view delim);
+extern bool sv_split_once(std::string_view str, std::string_view delim,
+                          std::string_view* first, std::string_view* second);
 
-    SDL_Log("Content:\n'%s'\n", input.c_str());
-    std::string_view view = { in + 4, 5 };
-    SDL_Log("View: '" SV_FMT "'\n", SV_ARG(view));
+int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
+    auto lines = sv_split(input, "\r\n");
+    for (std::string_view l : lines) {
+        SDL_Log(" - '" SV_FMT "'\n", SV_ARG(l));
+    }
+    std::string_view left, right;
+    if (sv_split_once(lines[2], " ", &left, &right)) {
+        SDL_Log(" LEFT: '" SV_FMT "'\n", SV_ARG(left));
+        SDL_Log(" RIGHT: '" SV_FMT "'\n", SV_ARG(right));
+    }
 
     print_res(p1, "Hello -> %i", 69);
     print_res(p2, "Hello -> %i", 420);

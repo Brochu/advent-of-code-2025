@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <string_view>
+#include <vector> //TODO: Maybe look into using our own dynamic array
 
 #include <windows.h>
 #include <wrl.h>
 #include <dxcapi.h>
 #include <SDL.h>
 
-#include "SDL_log.h"
 #include "day.hpp"
 
 using Microsoft::WRL::ComPtr;
@@ -22,28 +23,21 @@ int main(int argc, char **argv) {
     }
 
     if (!SDL_Init(SDL_INIT_VIDEO)) {
+        SDL_LogError(0, "[AoC2025] Could not init SDL3 - error: '%s'", SDL_GetError());
         return 1;
     }
-    SDL_GPUDevice *device = SDL_CreateGPUDevice(SDL_GPU_SHADERFORMAT_DXIL, true, NULL);
-    if (device == NULL) {
-        SDL_LogError(0, "[AoC2025] Could not create GPU device: %s", SDL_GetError());
-        return 1;
-    }
-
-    SDL_Log("[AoC2025] Starting ...");
 
     char part1[ANS_SIZE];
     memset(part1, 0, ANS_SIZE);
 
     char part2[ANS_SIZE];
     memset(part2, 0, ANS_SIZE);
-    int res = solve(part1, part2);
 
-    SDL_Log("[AoC2025] Solved %i with %i...", DAY, res);
+    int res = solve(part1, part2);
+    SDL_Log("[AoC2025] Solved %i with code %i", DAY, res);
     SDL_Log("    - Part1 : '%s'", part1);
     SDL_Log("    - Part2 : '%s'", part2);
 
-    SDL_DestroyGPUDevice(device);
     SDL_Quit();
     return 0;
 }
@@ -119,5 +113,42 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
         return s_blob;
     }
     return nullptr;
+}
+// -----------------------------------------------------------------------------
+// !! STRING MANIPULATION !!
+std::string_view sv_strstr(std::string_view haystack, std::string_view needle) {
+    size_t pos = haystack.find(needle);
+    if (pos == std::string_view::npos)
+        return {}; // return empty if not found
+
+    return haystack.substr(pos, needle.size());
+}
+
+std::vector<std::string_view> sv_split(std::string_view str, std::string_view delim) {
+    std::vector<std::string_view> result;
+    size_t pos = 0;
+
+    while (pos < str.size()) {
+        size_t end = str.find(delim, pos);
+        if (end == std::string_view::npos) {
+            result.push_back(str.substr(pos));
+            break;
+        }
+        result.push_back(str.substr(pos, end - pos));
+        pos = end + delim.size(); // skip over the whole delimiter
+    }
+    return result;
+}
+
+bool sv_split_once(std::string_view str, std::string_view delim,
+                std::string_view* first, std::string_view* second) {
+    size_t pos = str.find(delim);
+    if (pos == std::string_view::npos) {
+        return false; // delimiter not found
+    }
+
+    *first  = str.substr(0, pos);
+    *second = str.substr(pos + delim.size());
+    return true;
 }
 // -----------------------------------------------------------------------------
