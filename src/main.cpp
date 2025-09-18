@@ -1,20 +1,14 @@
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
-#include <string_view>
-#include <vector> //TODO: Maybe look into using our own dynamic array
 
-#include <windows.h>
-#include <wrl.h>
-#include <dxcapi.h>
 #include <SDL.h>
 
 #include "day.hpp"
-
+#include "parse.hpp"
+#include "hlsl.hpp"
 using Microsoft::WRL::ComPtr;
 
 void convert_file(char *from, char *to);
-ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profile);
 
 int main(int argc, char **argv) {
     if (argc >= 4 && strcmp(argv[1], "xvert") == 0) {
@@ -116,39 +110,42 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
 }
 // -----------------------------------------------------------------------------
 // !! STRING MANIPULATION !!
-std::string_view sv_strstr(std::string_view haystack, std::string_view needle) {
-    size_t pos = haystack.find(needle);
-    if (pos == std::string_view::npos)
-        return {}; // return empty if not found
-
-    return haystack.substr(pos, needle.size());
+strview sv_strstr(strview haystack, strview needle) {
+    const char *found = strstr(haystack.ptr, needle.ptr);
+    size_t pos = found - haystack.ptr;
+    if (pos >= haystack.len) {
+        return { "\0", 0 };
+    }
+    return { found, needle.len };
 }
 
-std::vector<std::string_view> sv_split(std::string_view str, std::string_view delim) {
-    std::vector<std::string_view> result;
+std::vector<strview> sv_split(strview str, strview delim) {
+    std::vector<strview> result;
     size_t pos = 0;
 
-    while (pos < str.size()) {
-        size_t end = str.find(delim, pos);
-        if (end == std::string_view::npos) {
-            result.push_back(str.substr(pos));
+    while (pos < str.len) {
+        strview start(str.ptr + pos, str.len - pos);
+        size_t end = (sv_strstr(start, delim).ptr - str.ptr);
+        if (end >= str.len) {
+            result.push_back({ str.ptr + pos, str.len - pos });
             break;
         }
-        result.push_back(str.substr(pos, end - pos));
-        pos = end + delim.size(); // skip over the whole delimiter
+        result.push_back({ str.ptr + pos, end - pos });
+        pos = end + delim.len; // skip over the whole delimiter
     }
     return result;
 }
 
-bool sv_split_once(std::string_view str, std::string_view delim,
-                std::string_view* first, std::string_view* second) {
-    size_t pos = str.find(delim);
-    if (pos == std::string_view::npos) {
+bool sv_split_once(strview str, strview delim, strview* first, strview* second) {
+    size_t pos = (sv_strstr(str, delim).ptr - str.ptr);
+    if (pos >= str.len) {
         return false; // delimiter not found
     }
 
-    *first  = str.substr(0, pos);
-    *second = str.substr(pos + delim.size());
+    first->ptr = str.ptr;
+    first->len = pos;
+    second->ptr = str.ptr + pos + delim.len;
+    second->len = str.len - pos - delim.len;
     return true;
 }
 // -----------------------------------------------------------------------------
