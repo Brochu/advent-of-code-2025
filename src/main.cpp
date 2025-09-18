@@ -76,10 +76,11 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
         exit(1);
     }
 
-    const char* hlslSource = "[numthreads(8, 1, 1)] void main() { }";
+    ComPtr<IDxcBlobEncoding> hlslsrc;
+    dxc_utils->LoadFile(file_path, NULL, &hlslsrc);
     DxcBuffer buf;
-    buf.Ptr = hlslSource;
-    buf.Size = strlen(hlslSource);
+    buf.Ptr = hlslsrc->GetBufferPointer();
+    buf.Size = hlslsrc->GetBufferSize();
     buf.Encoding = DXC_CP_ACP;
 
     const wchar_t *args[] = {
