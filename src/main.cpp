@@ -1,24 +1,17 @@
 #include <stdio.h>
 #include <string.h>
 
-#include <SDL.h>
-
 #include "day.hpp"
 #include "parse.hpp"
 #include "hlsl.hpp"
 using Microsoft::WRL::ComPtr;
 
-void convert_file(char *from, char *to);
+void convert_file(const char *from, const char *to);
 
 int main(int argc, char **argv) {
     if (argc >= 4 && strcmp(argv[1], "xvert") == 0) {
         convert_file(argv[2], argv[3]);
         return 0;
-    }
-
-    if (!SDL_Init(SDL_INIT_VIDEO)) {
-        SDL_LogError(0, "[AoC2025] Could not init SDL3 - error: '%s'", SDL_GetError());
-        return 1;
     }
 
     char part1[ANS_SIZE];
@@ -28,37 +21,44 @@ int main(int argc, char **argv) {
     memset(part2, 0, ANS_SIZE);
 
     int res = solve(part1, part2);
-    SDL_Log("[AoC2025] Solved %i with code %i", DAY, res);
-    SDL_Log("    - Part1 : '%s'", part1);
-    SDL_Log("    - Part2 : '%s'", part2);
+    printf("[AoC2025] Solved %i with code %i\n", DAY, res);
+    printf("    - Part1 : '%s'\n", part1);
+    printf("    - Part2 : '%s'\n", part2);
 
-    SDL_Quit();
     return 0;
 }
 
 // !! INPUT CONVERTER !!
-void convert_file(char *from, char *to) {
-    SDL_Log("[AoC2025] Convert tool | '%s' -> '%s'\n", from, to);
+void convert_file(const char *from, const char *to) {
+    printf("[AoC2025] Convert tool | '%s' -> '%s'\n", from, to);
 
-    size_t fsize = 0;
-    char *content = (char *)SDL_LoadFile(from, &fsize);
-    SDL_Log("[AoC2025] fsize = %lld\n", fsize);
-    SDL_Log("[AoC2025] Content = \n'%s'\n", content);
+    FILE *f;
+    fopen_s(&f, from, "rb");
+    fseek(f, 0, SEEK_END);
+    long fsize = ftell(f);
+    rewind(f);
 
-    SDL_IOStream *out = SDL_IOFromFile(to, "wb");
+    char *content = (char *)malloc(fsize + 1);
+    fread_s(content, fsize, 1, fsize, f);
+    content[fsize] = '\0';
+    printf("[AoC2025] fsize = %ld\n", fsize);
+    printf("[AoC2025] Content = \n'%s'\n", content);
+
+    fclose(f);
+
+    fopen_s(&f, to, "wb");
     static int cols = 18;
-    char temp[8];
 
     for (size_t i = 0; i <= fsize; i++) {
-        sprintf_s(temp, 8, "0x%02x,", content[i]);
-        SDL_WriteIO(out, temp, 5);
+        fprintf_s(f, "0x%02x,", content[i]);
 
         if (((i+1) % cols) == 0) {
-            SDL_WriteIO(out, "\n", 1);
+            fprintf_s(f, "\n");
         }
     }
-    SDL_CloseIO(out);
-    SDL_free(content);
+
+    fclose(f);
+    free(content);
 }
 // -----------------------------------------------------------------------------
 
@@ -66,13 +66,18 @@ void convert_file(char *from, char *to) {
 ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profile) {
     ComPtr<IDxcUtils> dxc_utils;
     ComPtr<IDxcCompiler3> dxc_comp;
+    ComPtr<IDxcContainerReflection> dxc_refl;
 
     if (FAILED(DxcCreateInstance(CLSID_DxcUtils, IID_PPV_ARGS(&dxc_utils)))) {
-        SDL_LogError(0, "[AoC2025] Could not create instance for DxcUtils\n");
+        printf("[AoC2025] Could not create instance for DxcUtils\n");
         exit(1);
     }
     if (FAILED(DxcCreateInstance(CLSID_DxcCompiler, IID_PPV_ARGS(&dxc_comp)))) {
-        SDL_LogError(0, "[AoC2025] Could not create instance for DxcCompiler\n");
+        printf("[AoC2025] Could not create instance for DxcCompiler\n");
+        exit(1);
+    }
+    if (FAILED(DxcCreateInstance(CLSID_DxcContainerReflection, IID_PPV_ARGS(&dxc_refl)))) {
+        printf("[AoC2025] Could not create instance for DxcContainerReflection\n");
         exit(1);
     }
 
@@ -92,11 +97,11 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
     HRESULT hr = dxc_comp->Compile(&buf, args, _countof(args), nullptr, IID_PPV_ARGS(&result));
     result->GetStatus(&hr);
     if (FAILED(hr)) {
-        SDL_LogError(0, "[AoC2025] Shader compile error with file '%ls'\n", file_path);
+        printf("[AoC2025] Shader compile error with file '%ls'\n", file_path);
 
         ComPtr<IDxcBlobUtf8> err;
         result->GetOutput(DXC_OUT_ERRORS, IID_PPV_ARGS(&err), nullptr);
-        SDL_LogError(0, "[AoC2025] Shader compile error -> '%.*s'\n", (int)err->GetStringLength()-1, err->GetStringPointer());
+        printf("[AoC2025] Shader compile error -> '%.*s'\n", (int)err->GetStringLength()-1, err->GetStringPointer());
 
         exit(1);
     }
@@ -104,7 +109,7 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
     ComPtr<IDxcBlob> s_blob;
     result->GetOutput(DXC_OUT_OBJECT, IID_PPV_ARGS(&s_blob), nullptr);
     if (s_blob) {
-        SDL_Log("[AoC2025] Shader compile completed successfully -> len = %lld\n", s_blob->GetBufferSize());
+        printf("[AoC2025] Shader compile completed successfully -> len = %lld\n", s_blob->GetBufferSize());
         return s_blob;
     }
     return nullptr;
