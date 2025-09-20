@@ -30,13 +30,14 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", func);
 
     uint64_t start = GetPerfCounter();
-    float in[128];
-    float out[128];
-    for (int i = 0; i < 128; i++) {
+    const int SIZE = 32;
+    float in[SIZE];
+    float out[SIZE];
+    for (int i = 0; i < SIZE; i++) {
         in[i] = (float)i;
     }
-    func(in, out, 128);
-    for (int i = 0; i < 128; i++) {
+    func(in, out, SIZE);
+    for (int i = 0; i < SIZE; i++) {
         printf("[ISPC] Result at %i = %f\n", i, out[i]);
     }
     uint64_t end = GetPerfCounter();
