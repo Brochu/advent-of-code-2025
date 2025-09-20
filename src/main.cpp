@@ -1,10 +1,9 @@
 #include <stdio.h>
 #include <string.h>
+#include <windows.h>
 
 #include "day.hpp"
 #include "parse.hpp"
-#include "hlsl.hpp"
-using Microsoft::WRL::ComPtr;
 
 void convert_file(const char *from, const char *to);
 
@@ -63,6 +62,7 @@ void convert_file(const char *from, const char *to) {
 // -----------------------------------------------------------------------------
 
 // !! SHADER COMPILE !!
+/*
 ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profile) {
     ComPtr<IDxcUtils> dxc_utils;
     ComPtr<IDxcCompiler3> dxc_comp;
@@ -114,6 +114,7 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
     }
     return nullptr;
 }
+*/
 // -----------------------------------------------------------------------------
 // !! STRING MANIPULATION !!
 strview sv_strstr(strview haystack, strview needle) {
@@ -153,5 +154,29 @@ bool sv_split_once(strview str, strview delim, strview* first, strview* second) 
     second->ptr = str.ptr + pos + delim.len;
     second->len = str.len - pos - delim.len;
     return true;
+}
+// -----------------------------------------------------------------------------
+// !! TIMER !!
+LARGE_INTEGER freq = { 0 };
+
+uint64_t GetPerfCounter() {
+    LARGE_INTEGER counter;
+    if (!QueryPerformanceCounter(&counter)) {
+        return 0; // Could not query perf counter
+    }
+
+    return counter.QuadPart;
+}
+
+double GetElapsedTime(uint64_t a, uint64_t b) {
+    if (freq.QuadPart == 0) {
+        if (!QueryPerformanceFrequency(&freq)) {
+            return -1.0; // Could not query perf frequency
+        }
+    }
+
+    uint64_t diff = b - a;
+    double time = (double)diff / (double)freq.QuadPart;
+    return time;
 }
 // -----------------------------------------------------------------------------

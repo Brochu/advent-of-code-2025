@@ -1,5 +1,4 @@
 -std=c++23
 -DDAY
 -I./include/
--I./include/dxc/
--I./include/SDL3/
+-I./include/ispc/
