@@ -1,4 +1,12 @@
-export void simple(uniform float vin[], uniform float vout[], uniform int count) {
+export void sums(
+    uniform int vals[],
+    uniform int starts[],
+    uniform int lens[],
+    uniform int outs[],
+    uniform int count
+) {
+
+    /*
     foreach (index = 0 ... count) {
         float v = vin[index];
         if (v < 3.)
@@ -7,4 +15,5 @@ export void simple(uniform float vin[], uniform float vout[], uniform int count)
             v = sqrt(v);
         vout[index] = v;
     }
+    */
 }

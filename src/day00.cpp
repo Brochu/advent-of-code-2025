@@ -5,11 +5,14 @@
 #include "timer.hpp"
 
 char in[] = {
-    #include "../inputs/in00.4.inc"
+    #include "../inputs/day00.inc"
 };
 strview input { in, strlen(in) };
 
-typedef void (*simple_func_t)(float input[], float output[], int count);
+static const char *ispc_src = "./shaders/day00.ispc";
+static const char *ispc_fn = "sums";
+
+typedef void (*sums_func_t)(int vals[], int starts[], int lens[], int outs[], int count);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     if (!ispc::Initialize()) {
@@ -21,43 +24,45 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         //"-O2",                     // Optimization level
     };
     std::unique_ptr<ispc::ISPCEngine> result = ispc::ISPCEngine::CreateFromArgs(args);
-    int res = result->CompileFromFileToJit("./shaders/day00.ispc");
+    int res = result->CompileFromFileToJit(ispc_src);
     if (res != 0) {
         printf("[ISPC] Could not compile code in day00.ispc\n");
         return 1;
     }
-    simple_func_t func = (simple_func_t)result->GetJitFunction("simple");
+    sums_func_t func = (sums_func_t)result->GetJitFunction(ispc_fn);
     printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", func);
 
-    uint64_t start = GetPerfCounter();
-    const int SIZE = 32;
-    float in[SIZE];
-    float out[SIZE];
-    for (int i = 0; i < SIZE; i++) {
-        in[i] = (float)i;
-    }
-    func(in, out, SIZE);
-    for (int i = 0; i < SIZE; i++) {
-        printf("[ISPC] Result at %i = %f\n", i, out[i]);
-    }
-    uint64_t end = GetPerfCounter();
-    double time = GetElapsedTime(start, end);
-    printf("[ISPC] Solved in = %f\n", time);
-    /*
-    auto lines = sv_split(input, "\r\n");
-    for (strview l : lines) {
-        printf("[NW SV] - '" SV_FMT "'\n", SV_ARG(l));
-    }
+    std::vector<int> elves;
+    std::vector<int> starts;
+    starts.emplace_back(0);
+    std::vector<int> lens;
 
-    strview l, r;
-    if (sv_split_once(lines[2], " ", &l, &r)) {
-        printf(" NEW LEFT: '" SV_FMT "'\n", SV_ARG(l));
-        printf(" NEW RIGHT: '" SV_FMT "'\n", SV_ARG(r));
-    }
+    std::vector<strview> groups = sv_split(input, "\n");
+    int group_len = 0;
+    char buf[32];
+    for (strview &g : groups) {
+        memcpy_s(buf, 32, g.ptr, g.len);
+        buf[g.len] = '\0';
+        int value = atoi(buf);
 
-    print_res(p1, "Hello -> %i", 69);
-    print_res(p2, "Hello -> %i", 420);
-    */
+        //printf(" - %i\n", value);
+        if (value > 0) {
+            elves.emplace_back((int)value);
+            group_len++;
+        } else {
+            lens.emplace_back((int)group_len);
+            group_len = 0;
+            starts.emplace_back((int)elves.size());
+        }
+    }
+    lens.emplace_back(group_len);
+    printf(" - %lld total elves\n", elves.size());
+    printf(" - %lld starts\n", starts.size());
+    printf(" - %lld lens\n", lens.size());
+
+    for (int i = 0; i < lens.back(); i++) {
+        printf(" '%i'\n", elves[i + starts.back()]);
+    }
 
     ispc::Shutdown();
     return 0;

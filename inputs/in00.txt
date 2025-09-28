@@ -1,5 +1,0 @@
-test input
-123456789
-other line
-
-YAYAAA
