@@ -6,14 +6,11 @@ export void sums(
     uniform int count
 ) {
 
-    /*
-    foreach (index = 0 ... count) {
-        float v = vin[index];
-        if (v < 3.)
-            v = v * v;
-        else
-            v = sqrt(v);
-        vout[index] = v;
+    foreach (group_idx = 0 ... count) {
+        int sum = 0;
+        for (int i = 0; i < lens[group_idx]; i++) {
+            sum += vals[starts[group_idx] + i];
+        }
+        outs[group_idx] = sum;
     }
-    */
 }

@@ -29,8 +29,8 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         printf("[ISPC] Could not compile code in day00.ispc\n");
         return 1;
     }
-    sums_func_t func = (sums_func_t)result->GetJitFunction(ispc_fn);
-    printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", func);
+    sums_func_t sums = (sums_func_t)result->GetJitFunction(ispc_fn);
+    printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", sums);
 
     std::vector<int> elves;
     std::vector<int> starts;
@@ -60,10 +60,18 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     printf(" - %lld starts\n", starts.size());
     printf(" - %lld lens\n", lens.size());
 
-    for (int i = 0; i < lens.back(); i++) {
-        printf(" '%i'\n", elves[i + starts.back()]);
+    std::vector<int> outs;
+    outs.resize(starts.size());
+
+    sums(elves.data(), starts.data(), lens.data(), outs.data(), starts.size());
+    int max = 0;
+    for (int i = 0; i < starts.size(); i++) {
+        printf(" '%i'\n", outs[i]);
+        if (outs[i] > max) max = outs[i];
     }
 
+    print_res(p1, "%i", max);
+    print_res(p2, "%i", 0);
     ispc::Shutdown();
     return 0;
 }
