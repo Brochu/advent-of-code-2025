@@ -1,3 +1,4 @@
+#include <algorithm>
 #include <ispc.h>
 
 #include "day.hpp"
@@ -30,7 +31,9 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         return 1;
     }
     sums_func_t sums = (sums_func_t)result->GetJitFunction(ispc_fn);
+    sums_func_t sums_gg = (sums_func_t)result->GetJitFunction("sums_gang_groups");
     printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", sums);
+    printf("[ISPC] Found compiled function from JIT ispc -> 0x%p\n", sums_gg);
 
     std::vector<int> elves;
     std::vector<int> starts;
@@ -63,15 +66,33 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     std::vector<int> outs;
     outs.resize(starts.size());
 
+    uint64_t start = GetPerfCounter();
     sums(elves.data(), starts.data(), lens.data(), outs.data(), starts.size());
+    uint64_t end = GetPerfCounter();
+    double time = GetElapsedTime(start, end);
+    printf(" -> Time spent in ISPC = %lf\n", time);
+
     int max = 0;
     for (int i = 0; i < starts.size(); i++) {
-        printf(" '%i'\n", outs[i]);
         if (outs[i] > max) max = outs[i];
     }
 
-    print_res(p1, "%i", max);
-    print_res(p2, "%i", 0);
+    std::make_heap(outs.begin(), outs.end());
+
+    std::pop_heap(outs.begin(), outs.end());
+    int first = outs.back();
+    outs.pop_back();
+
+    std::pop_heap(outs.begin(), outs.end());
+    int second = outs.back();
+    outs.pop_back();
+
+    std::pop_heap(outs.begin(), outs.end());
+    int third = outs.back();
+    outs.pop_back();
+
+    print_res(p1, "%i", first);
+    print_res(p2, "%i", first + second + third);
     ispc::Shutdown();
     return 0;
 }
