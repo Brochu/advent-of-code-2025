@@ -1,5 +1,6 @@
+#include <cassert>
+#include <ispc.h>
 #include <stdio.h>
-#include <string.h>
 #include <windows.h>
 
 #include "day.hpp"
@@ -13,6 +14,11 @@ int main(int argc, char **argv) {
         return 0;
     }
 
+    if (!ispc::Initialize()) {
+        printf("[ISPC] Could not init ISPC\n");
+        return 1;
+    }
+
     char part1[ANS_SIZE];
     memset(part1, 0, ANS_SIZE);
 
@@ -24,6 +30,7 @@ int main(int argc, char **argv) {
     printf("    - Part1 : '%s'\n", part1);
     printf("    - Part2 : '%s'\n", part2);
 
+    ispc::Shutdown();
     return 0;
 }
 
@@ -116,14 +123,35 @@ ComPtr<IDxcBlob> compile_shader(LPCWSTR file_path, LPCWSTR entry, LPCWSTR profil
 }
 */
 // -----------------------------------------------------------------------------
-// !! STRING MANIPULATION !!
-strview sv_strstr(strview haystack, strview needle) {
-    const char *found = strstr(haystack.ptr, needle.ptr);
-    size_t pos = found - haystack.ptr;
-    if (pos >= haystack.len) {
-        return { "\0", 0 };
+// !! ISPC COMPILE !!
+std::unique_ptr<ispc::ISPCEngine> compile_ispc(std::vector<std::string> &&args, const char *src_file) {
+    std::unique_ptr<ispc::ISPCEngine> engine = ispc::ISPCEngine::CreateFromArgs(args);
+
+    int res = engine->CompileFromFileToJit(src_file);
+    if (res != 0) {
+        printf("[ISPC] Could not compile code in day00.ispc\n");
+        assert(false);
     }
-    return { found, needle.len };
+    return engine;
+}
+
+// -----------------------------------------------------------------------------
+// !! STRING MANIPULATION !!
+strview sv_find(strview haystack, strview needle) {
+    if (needle.len == 0 || needle.len > haystack.len) {
+        return { nullptr, 0 };
+    }
+
+    for (size_t i = 0; i <= haystack.len - needle.len; i++) {
+        if (memcmp(haystack.ptr + i, needle.ptr, needle.len) == 0) {
+            return { haystack.ptr + 1, needle.len };
+        }
+    }
+
+    return { nullptr, 0 };
+}
+strview sv_find(strview haystack, const char *needle) {
+    return sv_find(haystack, sv(needle));
 }
 
 std::vector<strview> sv_split(strview str, strview delim) {
@@ -132,7 +160,7 @@ std::vector<strview> sv_split(strview str, strview delim) {
 
     while (pos < str.len) {
         strview start(str.ptr + pos, str.len - pos);
-        size_t end = (sv_strstr(start, delim).ptr - str.ptr);
+        size_t end = (sv_find(start, delim).ptr - str.ptr);
         if (end >= str.len) {
             result.push_back({ str.ptr + pos, str.len - pos });
             break;
@@ -142,18 +170,24 @@ std::vector<strview> sv_split(strview str, strview delim) {
     }
     return result;
 }
+std::vector<strview> sv_split(strview str, const char *delim) {
+    return sv_split(str, sv(delim));
+}
 
 bool sv_split_once(strview str, strview delim, strview* first, strview* second) {
-    size_t pos = (sv_strstr(str, delim).ptr - str.ptr);
-    if (pos >= str.len) {
-        return false; // delimiter not found
+    strview found = sv_find(str, delim);
+    if (found.ptr == nullptr) {
+        return false;
     }
 
-    first->ptr = str.ptr;
-    first->len = pos;
-    second->ptr = str.ptr + pos + delim.len;
-    second->len = str.len - pos - delim.len;
+    size_t pos = found.ptr - str.ptr;
+
+    *first = { str.ptr, pos };
+    *second = { found.ptr + delim.len, str.len - pos - delim.len };
     return true;
+}
+bool sv_split_once(strview str, const char *delim, strview* first, strview* second) {
+    return sv_split_once(str, sv(delim), first, second);
 }
 // -----------------------------------------------------------------------------
 // !! TIMER !!

@@ -3,14 +3,19 @@
 #include <vector>
 
 struct strview {
-    const char *ptr;
+    const char* ptr;
     size_t len;
-
-    strview() : ptr(NULL), len(0) {}
-    strview(const char *s) : ptr(s), len(strlen(s)) {}
-    strview(const char *s, size_t n) : ptr(s), len(n) {}
 };
 
-strview sv_strstr(strview haystack, strview needle);
+inline strview sv(const char *s) {
+    return { s, strlen(s) };
+}
+
+strview sv_find(strview haystack, strview needle);
+strview sv_find(strview haystack, const char *needle);
+
 std::vector<strview> sv_split(strview str, strview delim);
+std::vector<strview> sv_split(strview str, const char *delim);
+
 bool sv_split_once(strview str, strview delim, strview* first, strview* second);
+bool sv_split_once(strview str, const char *delim, strview* first, strview* second);
