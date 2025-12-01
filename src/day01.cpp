@@ -31,33 +31,28 @@ static const char *ispc_src = "./shaders/day01.ispc";
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "", "" /*"--target=host", "-O2"*/ }, ispc_src);
-    //std::vector<strview> lines = sv_split(input, "\n");
-    std::vector<strview> lines = sv_split(test, "\n");
+    std::vector<strview> lines = sv_split(input, "\n");
+    //std::vector<strview> lines = sv_split(test, "\n");
 
-    int num_zero_p1 = 0;
-    int num_zero_p2 = 0;
-    int dial_pos = 50;
+    int pos = 50;
+    int part1 = 0;
+    int part2 = 0;
     for (strview &v : lines) {
         char op = v.ptr[0];
         int len = atoi(&v.ptr[1]);
-        //printf(" -> Move %i steps to the %c\n", len, op);
 
-        num_zero_p2 += len/100;
         if (op == 'L') {
-            dial_pos = (dial_pos - len);
-        } else if (op == 'R') {
-            dial_pos = (dial_pos + len);
+            pos = (pos - len % 100 + 100) % 100;
+        } else {
+            pos = (pos + len) % 100;
         }
-        dial_pos %= 100;
 
-        //printf(" -> dial_pos after move = %i\n", dial_pos);
-        if (dial_pos % 100 == 0) {
-            num_zero_p1++;
+        if (pos == 0) {
+            part1++;
         }
     }
 
-
-    print_res(p1, "%i", num_zero_p1);
-    print_res(p2, "%i", num_zero_p2);
+    print_res(p1, "%i", part1);
+    print_res(p2, "%i", part2);
     return 0;
 }
