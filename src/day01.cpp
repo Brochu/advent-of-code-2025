@@ -37,18 +37,30 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     int pos = 50;
     int part1 = 0;
     int part2 = 0;
+
     for (strview &v : lines) {
         char op = v.ptr[0];
         int len = atoi(&v.ptr[1]);
 
         if (op == 'L') {
+            if (pos != 0 && pos < (len%100)) {
+                //printf("\tShould roll over 0 from L\n");
+                part2++;
+            }
             pos = (pos - len % 100 + 100) % 100;
         } else {
+            if (pos != 0 && (100-pos) < (len%100)) {
+                //printf("\tShould roll over 0 from R\n");
+                part2++;
+            }
             pos = (pos + len) % 100;
         }
+        //printf("[%c][%i] new pos = %i\n", op, len, pos);
 
+        part2 += len/100;
         if (pos == 0) {
             part1++;
+            part2++;
         }
     }
 
