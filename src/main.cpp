@@ -144,7 +144,7 @@ strview sv_find(strview haystack, strview needle) {
 
     for (size_t i = 0; i <= haystack.len - needle.len; i++) {
         if (memcmp(haystack.ptr + i, needle.ptr, needle.len) == 0) {
-            return { haystack.ptr + 1, needle.len };
+            return { haystack.ptr + i, needle.len };
         }
     }
 
