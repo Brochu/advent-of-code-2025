@@ -4,7 +4,7 @@
 #include "parse.hpp"
 //#include "simd.hpp"
 
-#if 1
+#if 0
 char in[] = {
     #include "../inputs/day02.inc"
 };
@@ -44,11 +44,25 @@ bool validate_num(i64 num) {
     return num == lo;
 }
 
+bool validate_window(i64 num) {
+    bool seen[10];
+    memset(seen, 0, sizeof(seen));
+
+    u64 size = 0;
+    u64 lo = 1;
+    while (lo < num) {
+        lo *= 10;
+        size++;
+    }
+
+    return true;
+}
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     //auto engine = compile_ispc({ "", "" /*"--target=host", "-O2"*/ }, ispc_src);
 
     u64 sum_p1 = 0;
+    u64 sum_p2 = 0;
     for (strview &elem : sv_split(input, ",")) {
         strview min_str, max_str;
         sv_split_once(elem, "-", &min_str, &max_str);
@@ -62,10 +76,15 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
                 //printf("[VALID] num = %lld\n", num);
                 sum_p1 += num;
             }
+            if (validate_window(num)) {
+                printf("[VALID] num = %lld\n", num);
+                sum_p2 += num;
+            }
+            break;
         }
     }
 
     print_res(p1, "%lld", sum_p1);
-    print_res(p2, "%lld", 0LL);
+    print_res(p2, "%lld", sum_p2);
     return 0;
 }
