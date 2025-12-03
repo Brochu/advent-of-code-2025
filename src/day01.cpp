@@ -30,7 +30,7 @@ static const char *ispc_src = "./shaders/day01.ispc";
 //using sums_func_t = void (*)(int vals[], int starts[], int lens[], int outs[], int count);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
-    auto engine = compile_ispc({ "", "" /*"--target=host", "-O2"*/ }, ispc_src);
+    //auto engine = compile_ispc({ "", "" /*"--target=host", "-O2"*/ }, ispc_src);
     std::vector<strview> lines = sv_split(input, "\n");
     //std::vector<strview> lines = sv_split(test, "\n");
 

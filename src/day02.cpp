@@ -4,7 +4,7 @@
 #include "parse.hpp"
 //#include "simd.hpp"
 
-#if 0
+#if 1
 char in[] = {
     #include "../inputs/day02.inc"
 };
@@ -21,8 +21,8 @@ static const char *ispc_src = "./shaders/day02.ispc";
 //using sums_func_t = void (*)(int vals[], int starts[], int lens[], int outs[], int count);
 
 bool validate_num(i64 num) {
-    u64 size = 0;
-    u64 lo = 1;
+    i64 size = 0;
+    i64 lo = 1;
     while (lo < num) {
         lo *= 10;
         size++;
@@ -45,17 +45,36 @@ bool validate_num(i64 num) {
 }
 
 bool validate_window(i64 num) {
-    bool seen[10];
-    memset(seen, 0, sizeof(seen));
-
-    u64 size = 0;
-    u64 lo = 1;
-    while (lo < num) {
+    i64 size = 0;
+    i64 lo = 1;
+    while (lo <= num) {
         lo *= 10;
         size++;
     }
 
-    return true;
+    for (int i = 2; i <= size; i++) {
+        if (size % i != 0) {
+            continue;
+        }
+
+        int inc = size/i;
+        i64 base = pow(10, inc);
+        i64 pattern = num%base;
+        bool valid = true;
+        //printf(" num = %lld, pattern = %lld (%i) (%i)\n", num, pattern, inc, i);
+        for (int j = inc; j < size; j += inc) {
+            i64 o = pow(10, j);
+            i64 cmp = (num/o)%base;
+            //printf(" -> j = %i; cmp = %lld\n", j, cmp);
+            if (pattern != cmp) {
+                valid = false;
+            }
+        }
+        if (valid) {
+            return true;
+        }
+    }
+    return false;
 }
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
@@ -77,10 +96,9 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
                 sum_p1 += num;
             }
             if (validate_window(num)) {
-                printf("[VALID] num = %lld\n", num);
+                //printf("[VALID] num = %lld\n", num);
                 sum_p2 += num;
             }
-            break;
         }
     }
 
