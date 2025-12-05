@@ -4,7 +4,7 @@
 #include "parse.hpp"
 #include "simd.hpp"
 
-#if 0
+#if 1
 char in[] = {
     #include "../inputs/day03.inc"
 };
@@ -21,7 +21,7 @@ strview input { in, strlen(in) };
 static const char *ispc_src = "./shaders/day03.ispc";
 
 static const char *ispc_fn = "part1";
-using part1_func_t = void (*)(i8 batteries[], u64 banks[], u64 num_banks, u64 bank_len, i64 *result);
+using part1_func_t = i64 (*)(i8 batteries[], u64 banks[], u64 num_banks, u64 bank_len);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "", "" /*"--target=host", "-O2"*/ }, ispc_src);
@@ -41,9 +41,7 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         }
     }
 
-    i64 result;
-    part1_fn(batteries.data(), banks.data(), num_banks, bank_len, &result);
-    //TODO: solve part 1 on the ISPC side
+    i64 result = part1_fn(batteries.data(), banks.data(), num_banks, bank_len);
 
     print_res(p1, "%lld", result);
     print_res(p2, "%lld", 0LL);
