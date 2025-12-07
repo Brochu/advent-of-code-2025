@@ -18,29 +18,21 @@ export uniform int64 part1(uniform int64 ls[], uniform int64 hs[], uniform int64
 }
 
 export uniform int64 part2(uniform int64 ls[], uniform int64 hs[], uniform int64 num_ranges) {
-    //TODO: This is way to slow, will need to find a good way to merge ranges
-    int64 min_lo = INT64_MAX;
-    int64 max_hi = INT64_MIN;
+    for(uniform int64 i = num_ranges - 1; i >= 0; i--) {
+        for(uniform int64 j = 0; j < i; j++) {
+            if (ls[j] > ls[j+1]) {
+                uniform int64 temp = ls[j];
+                ls[j] = ls[j+1];
+                ls[j+1] = temp;
 
-    foreach (range_idx = 0 ... num_ranges) {
-        min_lo = min(min_lo, ls[range_idx]);
-        max_hi = max(max_hi, hs[range_idx]);
-    }
-
-    uniform int64 start = reduce_min(min_lo);
-    uniform int64 end = reduce_max(max_hi);
-
-    int64 num_fresh = 0;
-    foreach (id = start ... end+1) {
-        for(uniform int64 i = 0; i < num_ranges; i++) {
-            int64 lo = ls[i];
-            int64 hi = hs[i];
-
-            if (id >= lo && id <= hi) {
-                num_fresh++;
-                break;
+                temp = hs[j];
+                hs[j] = hs[j+1];
+                hs[i+1] = temp;
             }
         }
     }
-    return reduce_add(num_fresh);
+
+    //TODO: Implement range merging
+
+    return 0;
 }
