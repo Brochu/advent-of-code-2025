@@ -27,12 +27,25 @@ export uniform int64 part2(uniform int64 ls[], uniform int64 hs[], uniform int64
 
                 temp = hs[j];
                 hs[j] = hs[j+1];
-                hs[i+1] = temp;
+                hs[j+1] = temp;
             }
         }
     }
 
-    //TODO: Implement range merging
+    uniform int64 current_lo = ls[0];
+    uniform int64 current_hi = hs[0];
+    uniform int64 total_valid = 0;
 
-    return 0;
+    for (uniform int64 i = 1; i < num_ranges; i++) {
+        if (ls[i] <= current_hi + 1) {
+            current_hi = max(current_hi, hs[i]);
+        } else {
+            total_valid += (current_hi - current_lo + 1);
+            current_lo = ls[i];
+            current_hi = hs[i];
+        }
+    }
+
+    total_valid += (current_hi - current_lo + 1);
+    return total_valid;
 }
