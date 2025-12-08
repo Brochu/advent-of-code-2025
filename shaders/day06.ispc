@@ -7,10 +7,12 @@ export uniform int64 solve(uniform int64 nums[], uniform int8 ops[], uniform uin
 
         for (uniform uint64 i = 0; i < op_len; i++) {
             if (op == 0) {
-                op_res *= nums[(op_idx * op_len) + i];
+                int64 val = nums[(op_idx * op_len) + i];
+                if (val != 0) { op_res *= val; }
             }
             else if (op == 1) {
-                op_res += nums[(op_idx * op_len) + i];
+                int64 val = nums[(op_idx * op_len) + i];
+                if (val != 0) { op_res += val; }
             }
         }
         sub_total += op_res;
