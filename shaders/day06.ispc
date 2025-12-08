@@ -1,4 +1,4 @@
-export uniform int64 part1(uniform int64 nums[], uniform int8 ops[], uniform uint64 num_ops, uniform uint64 op_len) {
+export uniform int64 solve(uniform int64 nums[], uniform int8 ops[], uniform uint64 num_ops, uniform uint64 op_len) {
 
     int64 sub_total = 0;
     foreach(op_idx = 0 ... num_ops) {
@@ -6,11 +6,11 @@ export uniform int64 part1(uniform int64 nums[], uniform int8 ops[], uniform uin
         int64 op_res = (op == 0) ? 1 : 0;
 
         for (uniform uint64 i = 0; i < op_len; i++) {
-            if (op == 0) { // MULT
-                op_res *= nums[(i * num_ops) + op_idx];
+            if (op == 0) {
+                op_res *= nums[(op_idx * op_len) + i];
             }
-            else if (op == 1) { // ADD
-                op_res += nums[(i * num_ops) + op_idx];
+            else if (op == 1) {
+                op_res += nums[(op_idx * op_len) + i];
             }
         }
         sub_total += op_res;

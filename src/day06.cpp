@@ -4,7 +4,7 @@
 #include "parse.hpp"
 #include "simd.hpp"
 
-#if 1
+#if 0
 char in[] = {
     #include "../inputs/day06.inc"
 };
@@ -20,39 +20,51 @@ strview input { in, strlen(in) };
 
 static const char *ispc_src = "./shaders/day06.ispc";
 
-static const char *part1_fn_name = "part1";
-using part1_fn_t = i64 (*)(i64 nums[], i8 ops[], u64 num_ops, u64 op_len);
+static const char *solve_fn_name = "solve";
+using solve_fn_t = i64 (*)(i64 nums[], i8 ops[], u64 num_ops, u64 op_len);
+
+i64 parse_num(strview line, i64 base, i64 end) {
+    i64 val = 0;
+    for (i32 j = 0; j < (end-base); j++) {
+        char curr = line.ptr[base+j];
+        if (curr != ' ') { val = (val*10) + (curr - '0'); }
+    }
+
+    return val;
+}
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "" }, ispc_src);
-    part1_fn_t part1_fn = (part1_fn_t)engine->GetJitFunction(part1_fn_name);
+    solve_fn_t solve_fn = (solve_fn_t)engine->GetJitFunction(solve_fn_name);
 
-    std::vector<i64> nums;
     std::vector<strview> lines = sv_split(input, "\n");
+    strview &op_line = lines.back();
+    std::vector<i8> ops_p1;
+    std::vector<i64> nums_p1;
 
-    u64 op_len = lines.size() - 1;
-    u64 num_ops = 0;
-    for (i32 i = 0; i < op_len; i++) {
-        u64 cnt = 0;
-        for (strview v : sv_split(lines[i], " ")) {
-            if (v.len == 0) { continue; }
-            cnt++;
-
-            nums.emplace_back(atoll(v.ptr));
+    i64 base = 0;
+    i64 end = 1;
+    while(end < op_line.len) {
+        if (op_line.ptr[end] != ' ') {
+            for (i32 i = 0; i < lines.size()-1; i++) {
+                nums_p1.emplace_back(parse_num(lines[i], base, end));
+            }
+            ops_p1.emplace_back(op_line.ptr[base] - '*');
+            base = end;
         }
-        num_ops = cnt;
+
+        end++;
     }
 
-    std::vector<i8> ops;
-    for (strview op : sv_split(lines.back(), " ")) {
-        if (op.len == 0) { continue; }
-
-        ops.emplace_back(op.ptr[0] - '*'); // 0: mult ; 1: add
+    for (i32 i = 0; i < lines.size()-1; i++) {
+        nums_p1.emplace_back(parse_num(lines[i], base, end));
     }
+    ops_p1.emplace_back(op_line.ptr[base] - '*');
 
-    i64 total = part1_fn(nums.data(), ops.data(), num_ops, op_len);
+    i64 total_p1 = solve_fn(nums_p1.data(), ops_p1.data(), ops_p1.size(), lines.size()-1);
+    i64 total_p2 = 0;
 
-    print_res(p1, "%lld", total);
-    print_res(p2, "%lld", 0LL);
+    print_res(p1, "%lld", total_p1);
+    print_res(p2, "%lld", total_p2);
     return 0;
 }
