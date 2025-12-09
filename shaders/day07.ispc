@@ -13,15 +13,35 @@ export void step(
     uniform int32 *uniform num_next,
     uniform int32 *uniform num_splits) {
 
-    foreach(active_idx = 0 ... num_active) {
+    //foreach(active_idx = 0 ... num_active) {
+    for(uniform int32 active_idx = 0; active_idx < num_active; active_idx++) {
         coord curr = active[active_idx];
         curr.y += 1;
 
         if (curr.y <= max_height) {
-            int32 idx = atomic_add_global(num_next, 1);
-            next[idx] = curr;
+            bool should_split = false;
+
+            for(uniform int32 i = 0; i < num_splitters; i++) {
+                if (splitters[i].x == curr.x && splitters[i].y == curr.y) {
+                    should_split = true;
+                    break;
+                }
+            }
+
+            if (!should_split) {
+                int32 idx = atomic_add_global(num_next, 1);
+                next[idx] = curr;
+            } else {
+                int32 left = atomic_add_global(num_next, 1);
+                next[left].x = curr.x - 1;
+                next[left].y = curr.y;
+
+                int32 right = atomic_add_global(num_next, 1);
+                next[right].x = curr.x + 1;
+                next[right].y = curr.y;
+
+                *num_splits += 1;
+            }
         }
     }
-
-    *num_splits = max_height;
 }

@@ -5,7 +5,7 @@
 #include "parse.hpp"
 #include "simd.hpp"
 
-#if 0
+#if 1
 char in[] = {
     #include "../inputs/day07.inc"
 };
@@ -44,16 +44,31 @@ static const char *step_fn_name = "step";
 using step_fn_t = void (*)(coord splitters[], i32 num_splitters, i32 max_height, coord active[], i32 num_active, coord next[], i32 *num_next, i32 *num_splits);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
-    auto engine = compile_ispc({ "" }, ispc_src);
+    auto engine = compile_ispc({ "-g" }, ispc_src);
     step_fn_t step_fn = (step_fn_t)engine->GetJitFunction(step_fn_name);
 
     std::vector<strview> lines = sv_split(input, "\n");
+    i32 height = lines.size();
+    i32 width = lines[0].len;
+
     coord start;
-    for(i32 i = 0; i < input.len; i++) {
+    for(i32 i = 0; i < lines[0].len; i++) {
         if (input.ptr[i] == 'S') {
             start.x = i;
             start.y = 0;
             break;
+        }
+    }
+
+    std::vector<coord> splitters;
+    for (i32 i = 1; i < lines.size(); i++) {
+        for (i32 j = 1; j < lines[i].len; j++) {
+            if (lines[i].ptr[j] == '^') {
+                coord s;
+                s.x = j;
+                s.y = i;
+                splitters.push_back(std::move(s));
+            }
         }
     }
 
@@ -79,15 +94,15 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
             coord c;
             c.key = *it;
             active.push_back(std::move(c));
-            printf(" - new active at (%i, %i) [%llu]\n", c.x, c.y, c.key);
+            //printf(" - new active at (%i, %i) [%llu]\n", c.x, c.y, c.key);
         }
         dedup.clear();
 
-        step_fn(nullptr, 0, lines.size(), active.data(), active.size(), next.data(), &num_next, &num_splits);
-        printf(" - num_splits = %i\n", num_splits);
+        step_fn(splitters.data(), splitters.size(), height, active.data(), active.size(), next.data(), &num_next, &num_splits);
+        //printf(" - num_splits = %i\n", num_splits);
     } while (num_next > 0);
 
-    print_res(p1, "%lld", 0LL);
+    print_res(p1, "%lld", num_splits);
     print_res(p2, "%lld", 0LL);
     return 0;
 }
