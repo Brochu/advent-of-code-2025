@@ -2,27 +2,26 @@ struct coord {
     int32 x;
     int32 y;
 };
-uniform uint64 coord_pack(uniform coord c) {
-    return ((uint64)c.y << 32) | (uint64)c.x;
-}
-uniform coord coord_unpack(uniform uint64 p) {
-    uniform coord c;
-    c.x = (int32)p;
-    c.y = (int32)(p >> 32);
-    return c;
-}
 
+export void step(
+    uniform coord splitters[],
+    uniform int32 num_splitters,
+    uniform int32 max_height,
+    uniform coord active[],
+    uniform int32 num_active,
+    uniform coord next[],
+    uniform int32 *uniform num_next,
+    uniform int32 *uniform num_splits) {
 
-export void step(uniform uint64 beams[], uniform uint64 num_beams, uniform uint64 uniform *uniform num_splits) {
+    foreach(active_idx = 0 ... num_active) {
+        coord curr = active[active_idx];
+        curr.y += 1;
 
-    uniform coord c;
-    c.x = 69;
-    c.y = 420;
-    uniform uint64 key = coord_pack(c);
-
-    uint64 sum = 0;
-    foreach(beam_idx = 0 ... num_beams) {
-        sum++;
+        if (curr.y <= max_height) {
+            int32 idx = atomic_add_global(num_next, 1);
+            next[idx] = curr;
+        }
     }
-    *num_splits = key;
+
+    *num_splits = max_height;
 }
