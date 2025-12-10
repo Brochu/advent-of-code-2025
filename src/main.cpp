@@ -26,7 +26,7 @@ int main(int argc, char **argv) {
     memset(part2, 0, ANS_SIZE);
 
     int res = solve(part1, part2);
-    printf("[AoC2025] Solved %i with code %i\n", DAY, res);
+    printf("[AoC2025] Solved with code %i\n", res);
     printf("    - Part1 : '%s'\n", part1);
     printf("    - Part2 : '%s'\n", part2);
 
