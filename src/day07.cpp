@@ -5,7 +5,7 @@
 #include "parse.hpp"
 #include "simd.hpp"
 
-#if 1
+#if 0
 char in[] = {
     #include "../inputs/day07.inc"
 };
@@ -86,23 +86,32 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         }
         active.clear();
 
-        next.clear();
-        next.resize(active.size() * 2);
-        num_next = 0;
-
         for(auto it = dedup.begin(); it != dedup.end(); it++) {
             coord c;
             c.key = *it;
             active.push_back(std::move(c));
-            //printf(" - new active at (%i, %i) [%llu]\n", c.x, c.y, c.key);
+            printf(" - new active at (%i, %i) [%llu]\n", c.x, c.y, c.key);
         }
         dedup.clear();
+        next.clear();
+        next.resize(active.size() * 2);
+        num_next = 0;
+
+
+        printf("DEBUG: calling step: active=%zu next_size=%zu next_capacity=%zu num_next(before)=%d num_splits(before)=%d\n",
+               active.size(), next.size(), next.capacity(), num_next, num_splits);
 
         step_fn(splitters.data(), splitters.size(), height, active.data(), active.size(), next.data(), &num_next, &num_splits);
-        //printf(" - num_splits = %i\n", num_splits);
+        printf("DEBUG: returned: num_next=%d num_splits=%d\n", num_next, num_splits);
+
+        // Dump the next[] contents the ISPC wrote
+        for (int i = 0; i < num_next; ++i) {
+            printf("DEBUG: next[%d] = (%d, %d) [key=%llu]\n", i, next[i].x, next[i].y, next[i].key);
+        }
+
     } while (num_next > 0);
 
-    print_res(p1, "%lld", num_splits);
-    print_res(p2, "%lld", 0LL);
+    print_res(p1, "%i", num_splits);
+    print_res(p2, "%i", 0);
     return 0;
 }

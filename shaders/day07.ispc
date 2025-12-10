@@ -29,18 +29,17 @@ export void step(
             }
 
             if (!should_split) {
-                int32 idx = atomic_add_global(num_next, 1);
+                int32 idx = atomic_add_local(num_next, 1);
                 next[idx] = curr;
             } else {
-                int32 left = atomic_add_global(num_next, 1);
-                next[left].x = curr.x - 1;
-                next[left].y = curr.y;
+                int32 left = atomic_add_local(num_next, 2);
+                next[left + 0].x = curr.x - 1;
+                next[left + 0].y = curr.y;
 
-                int32 right = atomic_add_global(num_next, 1);
-                next[right].x = curr.x + 1;
-                next[right].y = curr.y;
+                next[left + 1].x = curr.x + 1;
+                next[left + 1].y = curr.y;
 
-                *num_splits += 1;
+                atomic_add_local(num_splits, 1);
             }
         }
     }
