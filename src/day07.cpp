@@ -43,9 +43,24 @@ static const char *ispc_src = "./shaders/day07.ispc";
 static const char *step_fn_name = "step";
 using step_fn_t = void (*)(coord splitters[], i32 num_splitters, i32 max_height, coord active[], i32 num_active, coord next[], i32 *num_next, i32 *num_splits);
 
+static const char *test_fn_name = "test";
+using test_fn_t = void (*)(i32 num_active, i32 out[], i32 *num_out);
+
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "-g" }, ispc_src);
     step_fn_t step_fn = (step_fn_t)engine->GetJitFunction(step_fn_name);
+    test_fn_t test_fn = (test_fn_t)engine->GetJitFunction(test_fn_name);
+
+    const static i32 SIZE = 50;
+    std::vector<i32> out;
+    i32 num_out = 0;
+    out.resize(SIZE);
+    test_fn(SIZE, out.data(), &num_out);
+    printf(" - num_out = %i\n", num_out);
+    for(i32 v : out) {
+        printf(" -> %i\n", v);
+    }
+    return 0;
 
     std::vector<strview> lines = sv_split(input, "\n");
     i32 height = lines.size();

@@ -3,7 +3,8 @@ struct coord {
     int32 y;
 };
 
-export void step(
+export void step() {}
+/*
     uniform coord splitters[],
     uniform int32 num_splitters,
     uniform int32 max_height,
@@ -43,4 +44,27 @@ export void step(
             }
         }
     }
+}
+*/
+
+export void test(uniform int32 num_active, uniform int32 out[], uniform int32 *uniform num_out) {
+    int32 sum = 0;
+    uniform int32 next_idx = 0;
+
+    foreach(act_idx = 0 ... num_active) {
+        if (act_idx % 2 == 0) {
+            /*
+            foreach_active(idx) {
+                uniform int32 o = extract(act_idx, idx);
+                out[next_idx++] = o * 2;
+            }
+            */
+
+            uniform int32 count = reduce_add(1);
+            uniform int32 base = atomic_add_local(&next_idx, count);
+            int32 lane_offset = exclusive_scan_add(1);
+            out[base + lane_offset] = act_idx;
+        }
+    }
+    *num_out = next_idx;
 }
