@@ -2,12 +2,13 @@
 
 #include "day.hpp"
 #include "parse.hpp"
-//#include "simd.hpp"
+#include "simd.hpp"
 
 #if 0
 char in[] = {
     #include "../inputs/day08.inc"
 };
+const static i32 ITER = 1000;
 #else
 char in[] = {
 "162,817,812\n"
@@ -31,21 +32,25 @@ char in[] = {
 "984,92,344\n"
 "425,690,689\n"
 };
+const static i32 ITER = 10;
 #endif
 strview input { in, strlen(in) };
 
 struct box {
     i32 x, y, z;
 };
+struct link {
+    i32 f, t;
+};
 
-//static const char *ispc_src = "./shaders/day08.ispc";
+static const char *ispc_src = "./shaders/day08.ispc";
 
-//static const char *step_fn_name = "step";
-//using step_fn_t = void (*)(coord splitters[], i32 num_splitters, i32 max_height, coord active[], i32 num_active, coord next[], i32 *num_next, i32 *num_splits, i32 *num_done);
+static const char *solve_fn_name = "solvep1";
+using solve_fn_t = i32 (*)(box boxes[], i32 num_boxes, i32 num_iter, link to_connect[]);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
-    //auto engine = compile_ispc({ "-g" }, ispc_src);
-    //step_fn_t step_fn = (step_fn_t)engine->GetJitFunction(step_fn_name);
+    auto engine = compile_ispc({ "-g" }, ispc_src);
+    solve_fn_t solvep1_fn = (solve_fn_t)engine->GetJitFunction(solve_fn_name);
 
     std::vector<box> boxes;
     for(strview box_line : sv_split(input, "\n")) {
@@ -60,7 +65,16 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
 
     printf("[DEBUG] Found %lld boxes\n", boxes.size());
 
-    print_res(p1, "%i", 0);
+    std::vector<link> to_connect;
+    i32 num_conn = 0;
+    to_connect.resize(ITER);
+    i32 p1_res = solvep1_fn(boxes.data(), (i32)boxes.size(), ITER, to_connect.data());
+
+    for (link &c : to_connect) {
+        printf(" -> from: %i ; to: %i\n", c.f, c.t);
+    }
+
+    print_res(p1, "%i", p1_res);
     print_res(p2, "%i", 0);
     return 0;
 }
