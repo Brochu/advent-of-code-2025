@@ -5,7 +5,18 @@ struct link {
     int32 f, t;
 };
 
+void calc_shortest(uniform box boxes[], uniform int32 num_boxes, uniform int32 *first, uniform int32 *second) {
+}
+
 export uniform int32 solvep1(uniform box boxes[], uniform int32 num_boxes, uniform int32 num_iter, uniform link to_connect[]) {
+
+    uniform int32 *circuit_ids = new int32[num_boxes];
+    uniform int32 *circuit_sizes = new int32[num_boxes];
+
+    for (uniform int32 box_idx = 0; box_idx < num_boxes; box_idx++) {
+        circuit_ids[box_idx] = box_idx;
+        circuit_sizes[box_idx] = 1;
+    }
 
     uniform int32 min_dist = INT32_MAX;
     uniform link selected_link;
@@ -36,5 +47,8 @@ export uniform int32 solvep1(uniform box boxes[], uniform int32 num_boxes, unifo
     }
 
     to_connect[0] = selected_link;
-    return reduce_min(min_dist);
+    uniform int32 test = extract(circuit_sizes[6], 0);
+
+    delete[] circuit_ids;
+    return test;
 }
