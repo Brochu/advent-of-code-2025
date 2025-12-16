@@ -5,54 +5,90 @@ struct link {
     int32 from, to;
 };
 
-uniform int32 calc_shortest(uniform box boxes[], uniform int32 num_boxes, uniform int32 ids[], uniform int32 * uniform box0, uniform int32 * uniform box1) {
-    uniform int32 global_min = INT32_MAX;
+uniform int32 calc_shortest(uniform int32 xs[], uniform int32 ys[], uniform int32 zs[], uniform int32 num_boxes, uniform int32 ids[], uniform int32 * uniform from, uniform int32 * uniform to) {
 
-    for(uniform int32 b0 = 0; b0 < num_boxes; ++b0) {
-        uniform box from = boxes[b0];
+    // best distance seen so far (uniform because we need one value for the gang)
+    uniform float bestDist = 1e30f;
+    uniform int   bestI    = -1;
+    uniform int   bestJ    = -1;
 
-        foreach (b1 = 0 ... num_boxes) {
-            uniform int32 b1_u = extract(b1, 0);
-            if (b0 == b1_u) continue;
+    // iterate over i in blocks of programCount
+    for (uniform int i = 0; i < 20; ++i)
+    {
+        float xi = xs[i];
+        float yi = ys[i];
+        float zi = zs[i];
 
-            uniform box to = boxes[b1_u];
-            int32 dx = to.x - from.x;
-            int32 dy = to.y - from.y;
-            int32 dz = to.z - from.z;
-            int32 dist = (dx*dx) + (dy*dy) + (dz*dz);
-            bool valid = ids[b0] != ids[b1_u];
-            int32 potential = select(dist < global_min && valid, dist, INT32_MAX);
+        // j always starts at i+1 to avoid double work and self-comparison
+        for (uniform int j = i + 1; j < 20; ++j)
+        {
+            float xj = xs[j];
+            float yj = ys[j];
+            float zj = zs[j];
 
-            uniform int32 new_p = reduce_min(potential);
-            if (new_p < global_min) {
-                global_min = new_p;
+            float dx = xi - xj;
+            float dy = yi - yj;
+            float dz = zi - zj;
+            float d2 = dx*dx + dy*dy + dz*dz;   // squared distance
 
-                uniform int32 temp_mask = packmask(new_p == potential);
-                uniform int32 win_idx = count_leading_zeros(temp_mask);
-                *box0 = b0;
-                *box1 = extract(b1_u, win_idx);
+            // mask of lanes that beat the current best
+            varying bool closer = (d2 < bestDist) && (ids[i] != ids[j]);
+
+            if (any(closer))
+            {
+                // 1. reduce the minimum distance inside this gang
+                varying float newBest = select(bestDist, d2, closer);
+                uniform float gangMin = reduce_min(newBest);
+
+                // 2. which lane produced that minimum?
+                varying bool  isWinner = (newBest == gangMin);
+                uniform int   winnerLane = count_leading_zeros(packmask(isWinner));
+
+                // 3. update uniform best and indices
+                bestDist = gangMin;
+                bestI    = i;      // i is varying base + lane
+                bestJ    = j;
             }
         }
     }
-    return global_min;
+
+    *from = bestI;
+    *to = bestJ;
+
+    return 0;
 }
 
-export uniform int32 solvep1(uniform box boxes[], uniform int32 num_boxes, uniform int32 num_iter) {
+export uniform int32 solvep1(uniform int32 xs[], uniform int32 ys[], uniform int32 zs[], uniform int32 num_boxes, uniform int32 num_iter, uniform int32 * uniform from, uniform int32 * uniform to) {
+    uniform int32 * uniform circ_ids = uniform new int32[num_boxes];
+    uniform int32 * uniform circ_sizes = uniform new int32[num_boxes];
 
-    int32* uniform circuit_ids = uniform new int32[num_boxes];
-    int32* uniform circuit_sizes = uniform new int32[num_boxes];
-
-    for (uniform int32 box_idx = 0; box_idx < num_boxes; box_idx++) {
-        circuit_ids[box_idx] = box_idx;
-        circuit_sizes[box_idx] = 1;
+    for (uniform int32 i = 0; i < num_boxes; i++) {
+        circ_ids[i] = i;
+        circ_sizes[i] = 1;
     }
 
     uniform int32 f;
     uniform int32 t;
-    uniform int32 dist = calc_shortest(boxes, num_boxes, circuit_ids, &f, &t);
+    uniform int32 dist = calc_shortest(xs, ys, zs, num_boxes, circ_ids, &f, &t);
+    //TODO: THIS NEEDS TO GROUP BASED ON SIZE
+    circ_ids[f] = circ_ids[t];
+    circ_sizes[f]--;
+    circ_sizes[t]++;
 
-    uniform int32 test = circuit_ids[6];
-    delete[] circuit_ids;
-    delete[] circuit_sizes;
+    dist = calc_shortest(xs, ys, zs, num_boxes, circ_ids, &f, &t);
+    circ_ids[f] = circ_ids[t];
+    circ_sizes[f]--;
+    circ_sizes[t]++;
+
+    dist = calc_shortest(xs, ys, zs, num_boxes, circ_ids, &f, &t);
+    circ_ids[f] = circ_ids[t];
+    circ_sizes[f]--;
+    circ_sizes[t]++;
+
+    *from = f;
+    *to = t;
+
+    delete[] circ_ids;
+    delete[] circ_sizes;
     return dist;
 }
