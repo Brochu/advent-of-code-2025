@@ -39,14 +39,11 @@ strview input { in, strlen(in) };
 struct box {
     i32 x, y, z;
 };
-struct link {
-    i32 f, t;
-};
 
 static const char *ispc_src = "./shaders/day08.ispc";
 
 static const char *solve_fn_name = "solvep1";
-using solve_fn_t = i32 (*)(box boxes[], i32 num_boxes, i32 num_iter, link to_connect[]);
+using solve_fn_t = i32 (*)(box boxes[], i32 num_boxes, i32 num_iter);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "-g" }, ispc_src);
@@ -65,14 +62,8 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
 
     printf("[DEBUG] Found %lld boxes\n", boxes.size());
 
-    std::vector<link> to_connect;
     i32 num_conn = 0;
-    to_connect.resize(ITER);
-    i32 p1_res = solvep1_fn(boxes.data(), (i32)boxes.size(), ITER, to_connect.data());
-
-    for (link &c : to_connect) {
-        printf(" -> from: %i ; to: %i\n", c.f, c.t);
-    }
+    i32 p1_res = solvep1_fn(boxes.data(), (i32)boxes.size(), ITER);
 
     print_res(p1, "%i", p1_res);
     print_res(p2, "%i", 0);
