@@ -45,7 +45,7 @@ struct boxes {
 static const char *ispc_src = "./shaders/day08.ispc";
 
 static const char *solve_fn_name = "solvep1";
-using solve_fn_t = i32 (*)(i32 x[], i32 y[], i32 z[], i32 num_boxes, i32 num_iter, i32 *one, i32 *two);
+using solve_fn_t = i32 (*)(i32 x[], i32 y[], i32 z[], i32 num_boxes, i32 num_iter, i32 from[], i32 to[]);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "-g" }, ispc_src);
@@ -65,12 +65,15 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     }
 
     printf("[DEBUG] Found %lld boxes\n", b.xs.size());
+    std::vector<i32> f_idx, t_idx;
+    f_idx.resize(b.xs.size() * b.xs.size(), -1);
+    t_idx.resize(b.xs.size() * b.xs.size(), -1);
 
-    i32 from, to;
-    i32 p1_res = solvep1_fn(b.xs.data(), b.ys.data(), b.zs.data(), b.xs.size(), ITER, &from, &to);
-
-    printf("[DEBUG] from %d -> (%i, %i, %i)\n", from, b.xs[from], b.ys[from], b.zs[from]);
-    printf("[DEBUG] to   %d -> (%i, %i, %i)\n", to, b.xs[to], b.ys[to], b.zs[to]);
+    i32 p1_res = solvep1_fn(b.xs.data(), b.ys.data(), b.zs.data(), b.xs.size(), ITER, f_idx.data(), t_idx.data());
+    for (i32 i = 0; i < f_idx.size(); i++) {
+        if (f_idx[i] < 0 || t_idx[i] < 0) break;
+        printf(" - From: %i -> To: %i\n", f_idx[i], t_idx[i]);
+    }
 
     print_res(p1, "%i", p1_res);
     print_res(p2, "%i", 0);
