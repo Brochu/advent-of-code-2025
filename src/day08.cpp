@@ -37,15 +37,15 @@ const static i32 ITER = 10;
 strview input { in, strlen(in) };
 
 struct boxes {
-    std::vector<i32> xs;
-    std::vector<i32> ys;
-    std::vector<i32> zs;
+    std::vector<i64> xs;
+    std::vector<i64> ys;
+    std::vector<i64> zs;
 };
 
 static const char *ispc_src = "./shaders/day08.ispc";
 
 static const char *solve_fn_name = "solvep1";
-using solve_fn_t = i32 (*)(i32 x[], i32 y[], i32 z[], i32 num_boxes, i32 num_iter, i32 from[], i32 to[]);
+using solve_fn_t = i64 (*)(i64 x[], i64 y[], i64 z[], i64 num_boxes, i64 num_iter, i64 from[], i64 to[], i64 dists[], i32 ids[], i32 sizes[]);
 
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "-g" }, ispc_src);
@@ -63,19 +63,44 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         b.ys.emplace_back(atoi(mid.ptr));
         b.zs.emplace_back(atoi(hi.ptr));
     }
+    const size_t n = b.xs.size();
 
     printf("[DEBUG] Found %lld boxes\n", b.xs.size());
-    std::vector<i32> f_idx, t_idx;
-    f_idx.resize(b.xs.size() * b.xs.size(), -1);
-    t_idx.resize(b.xs.size() * b.xs.size(), -1);
+    std::vector<i64> f_idx, t_idx, dists;
+    f_idx.resize((n*(n-1))/2, -1);
+    t_idx.resize((n*(n-1))/2, -1);
+    dists.resize((n*(n-1))/2, -1);
 
-    i32 p1_res = solvep1_fn(b.xs.data(), b.ys.data(), b.zs.data(), b.xs.size(), ITER, f_idx.data(), t_idx.data());
-    for (i32 i = 0; i < f_idx.size(); i++) {
-        if (f_idx[i] < 0 || t_idx[i] < 0) break;
-        printf(" - From: %i -> To: %i\n", f_idx[i], t_idx[i]);
+    std::vector<i32> circ_ids, circ_sizes;
+    circ_ids.resize(n);
+    circ_sizes.resize(n, 1);
+    for (i32 i = 0; i < n; i++) {
+        circ_ids[i] = i;
     }
 
-    print_res(p1, "%i", p1_res);
+    i64 p1_res = solvep1_fn(
+        b.xs.data(), b.ys.data(), b.zs.data(), b.xs.size(),
+        ITER,
+        f_idx.data(), t_idx.data(), dists.data(),
+        circ_ids.data(), circ_sizes.data());
+
+    for (i32 i = 0; i < f_idx.size(); i++) {
+        i64 f = f_idx[i];
+        i64 t = t_idx[i];
+        printf(" - [%lld] From: %lld (%lld, %lld, %lld) -> To: %lld (%lld, %lld, %lld)\n",
+           dists[i],
+           f, b.xs[f], b.ys[f], b.zs[f],
+           t, b.xs[t], b.ys[t], b.zs[t]);
+    }
+
+    for (i32 i = 0; i < n; i++) {
+        i32 id = circ_ids[i];
+        i32 size = circ_sizes[id];
+
+        printf(" - Box #%i : id = %i (size = %i)\n", i, id, size);
+    }
+
+    print_res(p1, "%lld", p1_res);
     print_res(p2, "%i", 0);
     return 0;
 }
