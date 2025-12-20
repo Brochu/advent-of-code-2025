@@ -42,8 +42,7 @@ export uniform int64 solvep1(
         }
     }
 
-    const int K = 10;
-    uniform int top[10];
+    uniform int top[1000];
     uniform int selected = 0;
 
     for (uniform int i = 0; i < (num_boxes * (num_boxes - 1)) / 2; i++) {
@@ -53,20 +52,45 @@ export uniform int64 solvep1(
             pos++;
         }
 
-        if (pos < K) {
-            for (uniform int j = min(selected, 9); j > pos; j--) {
+        if (pos < num_iter) {
+            for (uniform int j = min(selected, (uniform int)(num_iter-1)); j > pos; j--) {
                 top[j] = top[j-1];
             }
 
             top[pos] = current;
-            if (selected < K) {
+            if (selected < num_iter) {
                 selected++;
             }
         }
     }
 
-    for (uniform int i = 0; i < K; i++) {
-        swap(from, to, dists, i, top[i]);
+    for (uniform int i = 0; i < num_iter; i++) {
+        uniform int idx = top[i];
+        uniform int64 f_idx = from[idx];
+        uniform int64 t_idx = to[idx];
+        uniform int cf_id = circ_ids[f_idx];
+        uniform int ct_id = circ_ids[t_idx];
+        if (cf_id == ct_id) {
+            continue;
+        }
+
+        if (circ_sizes[cf_id] > circ_sizes[ct_id]) {
+            circ_sizes[cf_id] += circ_sizes[ct_id];
+            circ_sizes[ct_id] = 0;
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (circ_ids[j] == ct_id) {
+                    circ_ids[j] = cf_id;
+                }
+            }
+        } else {
+            circ_sizes[ct_id] += circ_sizes[cf_id];
+            circ_sizes[cf_id] = 0;
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (circ_ids[j] == cf_id) {
+                    circ_ids[j] = ct_id;
+                }
+            }
+        }
     }
 
     return 1337;

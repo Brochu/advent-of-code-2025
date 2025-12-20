@@ -1,10 +1,11 @@
+#include <algorithm>
 #include <ispc.h>
 
 #include "day.hpp"
 #include "parse.hpp"
 #include "simd.hpp"
 
-#if 0
+#if 1
 char in[] = {
     #include "../inputs/day08.inc"
 };
@@ -78,12 +79,13 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         circ_ids[i] = i;
     }
 
-    i64 p1_res = solvep1_fn(
+    i64 unsued = solvep1_fn(
         b.xs.data(), b.ys.data(), b.zs.data(), b.xs.size(),
         ITER,
         f_idx.data(), t_idx.data(), dists.data(),
         circ_ids.data(), circ_sizes.data());
 
+    /*
     for (i32 i = 0; i < f_idx.size(); i++) {
         i64 f = f_idx[i];
         i64 t = t_idx[i];
@@ -98,6 +100,25 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
         i32 size = circ_sizes[id];
 
         printf(" - Box #%i : id = %i (size = %i)\n", i, id, size);
+    }
+    */
+
+    i64 last = -1;
+    i32 count = 0;
+    i64 p1_res = 1;
+    std::make_heap(circ_sizes.begin(), circ_sizes.end());
+
+    while (circ_sizes.size() > 0 && count < 3) {
+        std::pop_heap(circ_sizes.begin(), circ_sizes.end());
+        i32 next = circ_sizes.back();
+        circ_sizes.pop_back();
+        printf(" - size = %i\n", next);
+
+        if (next != last) {
+            p1_res *= next;
+            last = next;
+            count++;
+        }
     }
 
     print_res(p1, "%lld", p1_res);
