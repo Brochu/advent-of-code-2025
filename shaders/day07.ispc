@@ -54,19 +54,59 @@ export void step(
     }
 }
 
-/*
-export void test(uniform int32 num_active, uniform int32 out[], uniform int32 *uniform num_out) {
-    int32 sum = 0;
-    uniform int32 next_idx = 0;
+uniform int64 count_time(uniform coord splits[], uniform int32 num_splits, uniform int32 width, uniform int32 max_height, uniform coord curr, uniform int64 *uniform cache) {
+    if (curr.x < 0 || curr.x >= width || curr.y < 0) {
+        return 0;
+    }
+    if (curr.y >= max_height) {
+        return 1;
+    }
 
-    foreach(act_idx = 0 ... num_active) {
-        if (act_idx % 2 == 0) {
-            uniform int32 count = reduce_add(1);
-            uniform int32 base = atomic_add_local(&next_idx, count);
-            int32 lane_offset = exclusive_scan_add(1);
-            out[base + lane_offset] = act_idx;
+    uniform int32 idx = (curr.y * width) + curr.x;
+    if (cache[idx] >= 0) {
+        return cache[idx];
+    }
+
+    uniform bool is_split = false;
+    for(uniform int32 i = 0; i < num_splits; i++) {
+        if (splits[i].x == curr.x && splits[i].y == curr.y) {
+            is_split = true;
+            break;
         }
     }
-    *num_out = next_idx;
+
+    uniform int64 res = 0;
+    if (is_split) {
+        uniform coord l;
+        l.x = curr.x - 1;
+        l.y = curr.y;
+
+        uniform coord r;
+        r.x = curr.x + 1;
+        r.y = curr.y;
+
+        res += count_time(splits, num_splits, width, max_height, l, cache);
+        res += count_time(splits, num_splits, width, max_height, r, cache);
+    }
+    else {
+        uniform coord next;
+        next.x = curr.x;
+        next.y = curr.y + 1;
+        res += count_time(splits, num_splits, width, max_height, next, cache);
+    }
+
+    cache[idx] = res;
+    return res;
 }
-*/
+
+#define SIZE 142*142
+
+export void time(uniform coord splits[], uniform int32 num_splits, uniform int32 width, uniform int32 max_height, uniform coord *uniform start, uniform int64 *uniform num_timelines) {
+    uniform int64 *uniform cache = uniform new int64[SIZE];
+    for (uniform int32 i = 0; i < SIZE; i++) {
+        cache[i] = -1;
+    }
+
+    *num_timelines = count_time(splits, num_splits, width, max_height, *start, cache);
+    delete cache;
+}
