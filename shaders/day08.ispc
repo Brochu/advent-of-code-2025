@@ -1,97 +1,74 @@
-void swap(uniform int64 from[], uniform int64 to[], uniform int64 dists[], uniform int i, uniform int j) {
-    uniform int64 temp = dists[i];
-    dists[i] = dists[j];
-    dists[j] = temp;
+export void dist(uniform int32 xs[], uniform int32 ys[], uniform int32 zs[], uniform int num_boxes, uniform int32 from[], uniform int32 to[], uniform int64 dists[]) {
+    uniform int num_combos = 0;
 
-    temp = from[i];
-    from[i] = from[j];
-    from[j] = temp;
-
-    temp = to[i];
-    to[i] = to[j];
-    to[j] = temp;
-}
-
-export uniform int64 solvep1(
-    uniform int64 xs[],
-    uniform int64 ys[],
-    uniform int64 zs[],
-    uniform int64 num_boxes,
-    uniform int64 num_iter,
-    uniform int64 from[],
-    uniform int64 to[],
-    uniform int64 dists[],
-    uniform int circ_ids[],
-    uniform int circ_sizes[])
-{
     for (uniform int i = 0; i < num_boxes; i++) {
         foreach (j = i+1 ... num_boxes) {
-            int idx =
-                i * num_boxes
-                - (i * (i + 1))/2
-                + (j - i - 1);
-
             int64 dx = xs[j] - xs[i];
             int64 dy = ys[j] - ys[i];
             int64 dz = zs[j] - zs[i];
             int64 dist = dx*dx + dy*dy + dz*dz;
 
-            from[idx] = i;
-            to[idx] = j;
-            dists[idx] = dist;
+            packed_store_active(&from[num_combos], i);
+            packed_store_active(&to[num_combos], j);
+            num_combos += packed_store_active(&dists[num_combos], dist);
+        }
+    }
+}
+
+export uniform int64 connect(uniform int32 from[], uniform int32 to[], uniform int32 num_connect, uniform int32 c_ids[], uniform int32 c_sizes[], uniform int32 num_boxes) {
+    for (uniform int i = 0; i < num_connect; i++) {
+        uniform int64 from_id = from[i];
+        uniform int64 to_id   = to[i];
+
+        uniform int from_circ_id = c_ids[from_id];
+        uniform int to_circ_id   = c_ids[to_id];
+        if (from_circ_id == to_circ_id) {
+            continue;
+        }
+
+        if (c_sizes[from_circ_id] > c_sizes[to_circ_id]) {
+            atomic_add_global(&c_sizes[from_circ_id], c_sizes[to_circ_id]);
+            atomic_swap_global(&c_sizes[to_circ_id], 0);
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (c_ids[j] == to_circ_id) {
+                    atomic_swap_global(&c_ids[j], from_circ_id);
+                }
+            }
+        } else {
+            atomic_add_global(&c_sizes[to_circ_id], c_sizes[from_circ_id]);
+            atomic_swap_global(&c_sizes[from_circ_id], 0);
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (c_ids[j] == from_circ_id) {
+                    atomic_swap_global(&c_ids[j], to_circ_id);
+                }
+            }
         }
     }
 
-    uniform int top[1000];
+    uniform int top[3];
     uniform int selected = 0;
 
-    for (uniform int i = 0; i < (num_boxes * (num_boxes - 1)) / 2; i++) {
+    for (uniform int i = 0; i < num_boxes; i++) {
         uniform int current = i;
         uniform int pos = 0;
-        while (pos < selected && dists[top[pos]] < dists[current]) {
+        while (pos < selected && c_sizes[top[pos]] > c_sizes[current]) {
             pos++;
         }
 
-        if (pos < num_iter) {
-            for (uniform int j = min(selected, (uniform int)(num_iter-1)); j > pos; j--) {
+        if (pos < num_boxes) {
+            for (uniform int j = min(selected, (uniform int)(num_boxes-1)); j > pos; j--) {
                 top[j] = top[j-1];
             }
 
             top[pos] = current;
-            if (selected < num_iter) {
+            if (selected < num_boxes) {
                 selected++;
             }
         }
     }
 
-    for (uniform int i = 0; i < num_iter; i++) {
-        uniform int idx = top[i];
-        uniform int64 f_idx = from[idx];
-        uniform int64 t_idx = to[idx];
-        uniform int cf_id = circ_ids[f_idx];
-        uniform int ct_id = circ_ids[t_idx];
-        if (cf_id == ct_id) {
-            continue;
-        }
-
-        if (circ_sizes[cf_id] > circ_sizes[ct_id]) {
-            circ_sizes[cf_id] += circ_sizes[ct_id];
-            circ_sizes[ct_id] = 0;
-            for (uniform int j = 0; j < num_boxes; j++) {
-                if (circ_ids[j] == ct_id) {
-                    circ_ids[j] = cf_id;
-                }
-            }
-        } else {
-            circ_sizes[ct_id] += circ_sizes[cf_id];
-            circ_sizes[cf_id] = 0;
-            for (uniform int j = 0; j < num_boxes; j++) {
-                if (circ_ids[j] == cf_id) {
-                    circ_ids[j] = ct_id;
-                }
-            }
-        }
-    }
-
-    return 1337;
+    uniform int64 res = c_sizes[top[0]];
+    res *= c_sizes[top[1]];
+    res *= c_sizes[top[2]];
+    return res;
 }
