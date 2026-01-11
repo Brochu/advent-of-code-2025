@@ -44,7 +44,7 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
 
     i64 p1_res = solve_fn(xs.data(), ys.data(), n);
 
-    print_res(p1, "%lld", p1_res);
+    print_res(p1, "%lli", p1_res);
     print_res(p2, "%i", 0);
     return 0;
 }

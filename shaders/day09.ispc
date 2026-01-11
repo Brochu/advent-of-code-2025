@@ -1,4 +1,4 @@
-export uniform int64 solve(uniform int64 xs[], uniform int64 ys[], uniform int len) {
+export uniform int64 solve(uniform int64 xs[], uniform int64 ys[], uniform int32 len) {
     uniform int64 max_area = 0;
 
     for (uniform int i = 0; i < len; i++) {
