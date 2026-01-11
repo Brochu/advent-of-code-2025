@@ -26,6 +26,8 @@ export uniform int64 connect(uniform int32 from[], uniform int32 to[], uniform i
             continue;
         }
 
+        //TODO: Revise this algo, it doesn't really use the power of ISPC properly
+        // Are atmoics here really helping anything at all?
         if (c_sizes[from_circ_id] > c_sizes[to_circ_id]) {
             atomic_add_global(&c_sizes[from_circ_id], c_sizes[to_circ_id]);
             atomic_swap_global(&c_sizes[to_circ_id], 0);
@@ -45,30 +47,98 @@ export uniform int64 connect(uniform int32 from[], uniform int32 to[], uniform i
         }
     }
 
-    uniform int top[3];
-    uniform int selected = 0;
+    int top[3] = { 0, 0, 0 };
+    foreach (i = 0 ... num_boxes) {
+        int current = c_sizes[i];
 
-    for (uniform int i = 0; i < num_boxes; i++) {
-        uniform int current = i;
-        uniform int pos = 0;
-        while (pos < selected && c_sizes[top[pos]] > c_sizes[current]) {
-            pos++;
+        if (top[0] < current) {
+            top[2] = top[1];
+            top[1] = top[0];
+            top[0] = current;
         }
-
-        if (pos < num_boxes) {
-            for (uniform int j = min(selected, (uniform int)(num_boxes-1)); j > pos; j--) {
-                top[j] = top[j-1];
-            }
-
-            top[pos] = current;
-            if (selected < num_boxes) {
-                selected++;
-            }
+        else if (top[1] < current) {
+            top[2] = top[1];
+            top[1] = current;
+        } else if (top[2] < current) {
+            top[2] = current;
         }
     }
 
-    uniform int64 res = c_sizes[top[0]];
-    res *= c_sizes[top[1]];
-    res *= c_sizes[top[2]];
+    uniform int flat_maxes[programCount * 3];
+    uniform int write_pos = 0;
+    for (uniform int i = 0; i < 3; i++) {
+        write_pos += packed_store_active(&flat_maxes[write_pos], top[i]);
+    }
+
+    uniform int global_top[3] = { 0, 0, 0 };
+    for (uniform int i = 0; i < programCount * 3; i++) {
+        uniform int current = flat_maxes[i];
+
+        if (global_top[0] < current) {
+            global_top[2] = global_top[1];
+            global_top[1] = global_top[0];
+            global_top[0] = current;
+        }
+        else if (global_top[1] < current) {
+            global_top[2] = global_top[1];
+            global_top[1] = current;
+        } else if (global_top[2] < current) {
+            global_top[2] = current;
+        }
+    }
+
+    uniform int64 res = 1;
+    res *= global_top[0];
+    res *= global_top[1];
+    res *= global_top[2];
     return res;
+}
+
+uniform bool check_ids(uniform int32 c_ids[], uniform int32 num_boxes) {
+    uniform int first_id = c_ids[0];
+    varying bool matches = true;
+
+    foreach (i = 0 ... num_boxes) {
+        matches = matches && (c_ids[i] == first_id);
+    }
+
+    return all(matches);
+}
+
+export uniform int64 complete(uniform int32 from[], uniform int32 to[], uniform int32 num_connect, uniform int32 c_ids[], uniform int32 c_sizes[], uniform int32 num_boxes) {
+    uniform int i = num_connect;
+    while (!check_ids(c_ids, num_boxes)) {
+        uniform int64 from_id = from[i];
+        uniform int64 to_id   = to[i];
+
+        uniform int from_circ_id = c_ids[from_id];
+        uniform int to_circ_id   = c_ids[to_id];
+        if (from_circ_id == to_circ_id) {
+            i++;
+            continue;
+        }
+
+        //TODO: Revise this algo, it doesn't really use the power of ISPC properly
+        // Are atmoics here really helping anything at all?
+        if (c_sizes[from_circ_id] > c_sizes[to_circ_id]) {
+            atomic_add_global(&c_sizes[from_circ_id], c_sizes[to_circ_id]);
+            atomic_swap_global(&c_sizes[to_circ_id], 0);
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (c_ids[j] == to_circ_id) {
+                    atomic_swap_global(&c_ids[j], from_circ_id);
+                }
+            }
+        } else {
+            atomic_add_global(&c_sizes[to_circ_id], c_sizes[from_circ_id]);
+            atomic_swap_global(&c_sizes[from_circ_id], 0);
+            for (uniform int j = 0; j < num_boxes; j++) {
+                if (c_ids[j] == from_circ_id) {
+                    atomic_swap_global(&c_ids[j], to_circ_id);
+                }
+            }
+        }
+        i++;
+    }
+
+    return i - 1;
 }

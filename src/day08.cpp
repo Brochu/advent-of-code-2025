@@ -90,10 +90,14 @@ using dist_fn_t = void (*)(i32 x[], i32 y[], i32 z[], i32 num_boxes, i32 from[],
 static const char *cnnx_fn_name = "connect";
 using cnnx_fn_t = i64 (*)(i32 from[], i32 to[], i32 num_connect, i32 c_ids[], i32 c_sizes[], i32 num_boxes);
 
+static const char *cmpl_fn_name = "complete";
+using cmpl_fn_t = i64 (*)(i32 from[], i32 to[], i32 num_connect, i32 c_ids[], i32 c_sizes[], i32 num_boxes);
+
 int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     auto engine = compile_ispc({ "-g" }, ispc_src);
     dist_fn_t dist_fn = (dist_fn_t)engine->GetJitFunction(dist_fn_name);
     cnnx_fn_t cnnx_fn = (cnnx_fn_t)engine->GetJitFunction(cnnx_fn_name);
+    cmpl_fn_t cmpl_fn = (cmpl_fn_t)engine->GetJitFunction(cmpl_fn_name);
 
     boxes b;
     std::vector<strview> box_lines = sv_split(input, "\n");
@@ -122,20 +126,17 @@ int solve(char p1[ANS_SIZE], char p2[ANS_SIZE]) {
     dist_fn(b.xs.data(), b.ys.data(), b.zs.data(), n, c.from.data(), c.to.data(), c.dist.data());
     quicksort(c, 0, c.dist.size());
 
-    /*
-    for (i32 i = 0; i < (n*(n-1)/2); i++) {
-        printf(" - (%i) -- (%i) / {%lli}\n", c.from[i], c.to[i], c.dist[i]);
-    }
-    */
-
     i64 res_p1 = cnnx_fn(c.from.data(), c.to.data(), num_connection, b.c_ids.data(), b.c_sizes.data(), n);
-
+    i64 offset = cmpl_fn(c.from.data(), c.to.data(), num_connection, b.c_ids.data(), b.c_sizes.data(), n);
     for (i32 i = 0; i < n; i++) {
         printf(" - [(%i, %i, %i)] : ID = %i; SIZE = %i\n", b.xs[i], b.ys[i], b.zs[i], b.c_ids[i], b.c_sizes[i]);
     }
 
-    //i64 res_p1 = 0;
-    i64 res_p2 = 0;
+    i32 f_idx = c.from[offset];
+    i32 t_idx = c.to[offset];
+    printf(" - (%i, %i, %i) -- (%i, %i, %i)\n", b.xs[f_idx], b.ys[f_idx], b.zs[f_idx], b.xs[t_idx], b.ys[t_idx], b.zs[t_idx]);
+
+    i64 res_p2 = b.xs[f_idx] * b.xs[t_idx];
     print_res(p1, "%lli", res_p1);
     print_res(p2, "%lli", res_p2);
     return 0;
