@@ -39,3 +39,6 @@
 
 *.pdb
 *.ilk
+
+# RAD debugger info
+*.rdi
